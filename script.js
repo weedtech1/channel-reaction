@@ -1,343 +1,229 @@
-const BACKEND_URL = "https://channel-reaction-backend.onrender.com";
+const BACKEND_URL =
+  "https://channel-reaction-backend.onrender.com";
 
-const reactions = {
-  "😢": 10,
-  "🥰": 10,
-  "🤩": 10,
-  "🤣": 10,
-  "🤷": 10,
-  "🤑": 10,
-  "🧭": 10,
-  "❤️‍🔥": 10,
-  "♥️": 10,
-  "⌛️": 10,
-  "🎃": 10,
-  "🩵": 10,
-  "🪆": 10
-};
+const channelInput = document.getElementById("channelLink");
+const verifyButton = document.getElementById("verifyChannel");
+const prepareButton = document.getElementById("prepareReactions");
 
-let channelLink = localStorage.getItem("channelLink") || "";
-let posts = JSON.parse(localStorage.getItem("posts") || "[]");
+const connectionStatus =
+  document.getElementById("connectionStatus") ||
+  document.querySelector(".status");
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadChannel();
-  loadReactions();
-  loadPosts();
-  updateStats();
+const channelMessage =
+  document.getElementById("channelMessage") ||
+  document.querySelector(".channel-message");
 
-  const verifyBtn = document.getElementById("verifyChannel");
-  if (verifyBtn) {
-    verifyBtn.addEventListener("click", verifyChannel);
-  }
+const reactionStatus =
+  document.getElementById("reactionStatus") ||
+  document.querySelector(".reaction-status");
 
-  const prepareBtn = document.getElementById("prepareReactions");
-  if (prepareBtn) {
-    prepareBtn.addEventListener("click", prepareReactions);
-  }
-});
+function setStatus(text, connected = false) {
+  if (!connectionStatus) return;
 
-function loadChannel() {
-  const input = document.getElementById("channelLink");
+  connectionStatus.textContent = text;
 
-  if (input && channelLink) {
-    input.value = channelLink;
-  }
+  connectionStatus.classList.toggle(
+    "connected",
+    connected
+  );
+
+  connectionStatus.classList.toggle(
+    "disconnected",
+    !connected
+  );
 }
 
-function saveChannel() {
-  const input = document.getElementById("channelLink");
-
-  if (!input) {
-    showLog("Channel link input not found.", "error");
-    return "";
+function message(text) {
+  if (channelMessage) {
+    channelMessage.textContent = text;
   }
 
-  const value = input.value.trim();
-
-  if (!value) {
-    showLog("Please enter a WhatsApp Channel link.", "error");
-    return "";
-  }
-
-  if (!value.startsWith("https://whatsapp.com/channel/")) {
-    showLog("Invalid WhatsApp Channel link.", "error");
-    return "";
-  }
-
-  channelLink = value;
-  localStorage.setItem("channelLink", channelLink);
-
-  return channelLink;
+  console.log(text);
 }
 
 async function verifyChannel() {
-  const link = saveChannel();
+  const channelLink = channelInput
+    ? channelInput.value.trim()
+    : "";
 
-  if (!link) return;
-
-  showLog("Connecting to backend...", "info");
-
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/channel`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        channelLink: link
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "Channel verification failed.");
-    }
-
-    setConnectionStatus(true);
-
-    showLog("Channel link accepted by backend.", "success");
-  } catch (error) {
-    setConnectionStatus(false);
-
-    showLog(
-      `Backend connection error: ${error.message}`,
-      "error"
-    );
-  }
-}
-
-function setConnectionStatus(connected) {
-  const status =
-    document.getElementById("connectionStatus") ||
-    document.querySelector(".status");
-
-  if (!status) return;
-
-  if (connected) {
-    status.textContent = "Connected";
-    status.classList.add("connected");
-    status.classList.remove("disconnected");
-  } else {
-    status.textContent = "Disconnected";
-    status.classList.add("disconnected");
-    status.classList.remove("connected");
-  }
-}
-
-function loadReactions() {
-  const saved = JSON.parse(
-    localStorage.getItem("reactionSettings") || "{}"
-  );
-
-  Object.keys(reactions).forEach((emoji) => {
-    if (typeof saved[emoji] === "number") {
-      reactions[emoji] = saved[emoji];
-    }
-  });
-
-  renderReactionValues();
-}
-
-function saveReactions() {
-  localStorage.setItem(
-    "reactionSettings",
-    JSON.stringify(reactions)
-  );
-}
-
-function renderReactionValues() {
-  Object.entries(reactions).forEach(([emoji, amount]) => {
-    const safeEmoji = encodeURIComponent(emoji);
-
-    const element =
-      document.querySelector(`[data-reaction="${safeEmoji}"]`) ||
-      document.querySelector(`[data-emoji="${emoji}"]`);
-
-    if (element) {
-      element.textContent = amount;
-    }
-  });
-}
-
-function changeReaction(emoji, amount) {
-  if (!Object.prototype.hasOwnProperty.call(reactions, emoji)) {
-    reactions[emoji] = 0;
-  }
-
-  reactions[emoji] += amount;
-
-  if (reactions[emoji] < 0) {
-    reactions[emoji] = 0;
-  }
-
-  saveReactions();
-  renderReactionValues();
-  updateStats();
-}
-
-async function prepareReactions() {
-  const link = saveChannel();
-
-  if (!link) return;
-
-  showLog("Sending reaction configuration to backend...", "info");
-
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/reactions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        channelLink: link,
-        reactions: reactions
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(
-        data.message || "Could not prepare reactions."
-      );
-    }
-
-    showLog(
-      "Reaction configuration successfully sent to backend.",
-      "success"
-    );
-
-    addActivity(
-      "Reaction configuration prepared"
-    );
-  } catch (error) {
-    showLog(
-      `Backend error: ${error.message}`,
-      "error"
-    );
-  }
-}
-
-function addActivity(message) {
-  const activity =
-    document.getElementById("activityLog") ||
-    document.querySelector(".activity-log");
-
-  if (!activity) return;
-
-  const item = document.createElement("div");
-
-  item.className = "activity-item";
-
-  item.innerHTML = `
-    <span>${escapeHtml(message)}</span>
-    <small>${new Date().toLocaleTimeString()}</small>
-  `;
-
-  activity.prepend(item);
-}
-
-function showLog(message, type = "info") {
-  console.log(`[${type}] ${message}`);
-
-  const log =
-    document.getElementById("activityLog") ||
-    document.querySelector(".activity-log");
-
-  if (!log) return;
-
-  const item = document.createElement("div");
-
-  item.className = `activity-item ${type}`;
-
-  item.innerHTML = `
-    <span>${escapeHtml(message)}</span>
-    <small>${new Date().toLocaleTimeString()}</small>
-  `;
-
-  log.prepend(item);
-}
-
-function loadPosts() {
-  const container =
-    document.getElementById("posts") ||
-    document.querySelector(".posts");
-
-  if (!container) return;
-
-  if (!posts.length) {
+  if (!channelLink) {
+    message("Mete yon WhatsApp Channel link.");
+    setStatus("Not connected");
     return;
   }
 
-  container.innerHTML = "";
+  if (!channelLink.startsWith(
+    "https://whatsapp.com/channel/"
+  )) {
+    message("WhatsApp Channel link la pa valid.");
+    setStatus("Not connected");
+    return;
+  }
 
-  posts.forEach((post) => {
-    const item = document.createElement("div");
+  message("Ap verify Channel la...");
+  setStatus("Connecting...");
 
-    item.className = "post";
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/api/channel`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          channelLink: channelLink
+        })
+      }
+    );
 
-    item.innerHTML = `
-      <div class="post-content">
-        <strong>${escapeHtml(post.title || "Channel Post")}</strong>
-        <p>${escapeHtml(post.text || "")}</p>
-      </div>
-    `;
+    const data = await response.json();
 
-    container.appendChild(item);
-  });
+    console.log("Backend response:", data);
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Verification failed"
+      );
+    }
+
+    localStorage.setItem(
+      "channelLink",
+      channelLink
+    );
+
+    setStatus("Connected", true);
+
+    message(
+      "Channel link la verify avèk siksè ✅"
+    );
+
+    if (reactionStatus) {
+      reactionStatus.textContent =
+        "Channel Ready ✅";
+    }
+
+  } catch (error) {
+    console.error(error);
+
+    setStatus("Not connected");
+
+    message(
+      "Backend pa reponn. Eseye ankò."
+    );
+
+    if (reactionStatus) {
+      reactionStatus.textContent =
+        "Waiting for Channel...";
+    }
+  }
 }
 
-function savePosts() {
-  localStorage.setItem(
-    "posts",
-    JSON.stringify(posts)
+async function prepareReactions() {
+  const channelLink = channelInput
+    ? channelInput.value.trim()
+    : "";
+
+  if (!channelLink) {
+    message("Verify Channel la an premye.");
+    return;
+  }
+
+  const reactions = {};
+
+  document
+    .querySelectorAll("[data-emoji]")
+    .forEach((element) => {
+      const emoji =
+        element.getAttribute("data-emoji");
+
+      const input =
+        element.querySelector("input");
+
+      if (input) {
+        reactions[emoji] =
+          Number(input.value) || 0;
+      }
+    });
+
+  try {
+    if (reactionStatus) {
+      reactionStatus.textContent =
+        "Preparing reactions...";
+    }
+
+    const response = await fetch(
+      `${BACKEND_URL}/api/reactions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          channelLink: channelLink,
+          reactions: reactions
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Reaction response:", data);
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Reaction request failed"
+      );
+    }
+
+    if (reactionStatus) {
+      reactionStatus.textContent =
+        "Reactions prepared ✅";
+    }
+
+    message(
+      "Reaction configuration backend lan resevwa ✅"
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    if (reactionStatus) {
+      reactionStatus.textContent =
+        "Reaction request failed";
+    }
+
+    message(
+      "Backend pa resevwa demann lan."
+    );
+  }
+}
+
+function restoreChannel() {
+  const saved =
+    localStorage.getItem("channelLink");
+
+  if (saved && channelInput) {
+    channelInput.value = saved;
+  }
+}
+
+if (verifyButton) {
+  verifyButton.addEventListener(
+    "click",
+    verifyChannel
   );
 }
 
-function addPost(title, text) {
-  posts.unshift({
-    title: title || "Channel Post",
-    text: text || "",
-    createdAt: Date.now()
-  });
-
-  savePosts();
-  loadPosts();
-  updateStats();
+if (prepareButton) {
+  prepareButton.addEventListener(
+    "click",
+    prepareReactions
+  );
 }
 
-function updateStats() {
-  const totalReactions = Object.values(reactions)
-    .reduce((sum, value) => sum + Number(value || 0), 0);
+restoreChannel();
 
-  const totalElement =
-    document.getElementById("totalReactions");
-
-  if (totalElement) {
-    totalElement.textContent =
-      totalReactions.toLocaleString();
-  }
-
-  const postsElement =
-    document.getElementById("totalPosts");
-
-  if (postsElement) {
-    postsElement.textContent =
-      posts.length.toLocaleString();
-  }
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-window.changeReaction = changeReaction;
-window.verifyChannel = verifyChannel;
-window.prepareReactions = prepareReactions;
-window.addPost = addPost;
+console.log(
+  "Channel Reaction frontend loaded 🚀"
+);
