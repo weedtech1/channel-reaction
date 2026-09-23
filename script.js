@@ -1,632 +1,343 @@
-const reactions = [
-  { emoji: "😢", name: "Sad" },
-  { emoji: "🥰", name: "Love" },
-  { emoji: "🤩", name: "Wow" },
-  { emoji: "🤣", name: "Funny" },
-  { emoji: "🤷", name: "Confused" },
-  { emoji: "🤑", name: "Money" },
-  { emoji: "🧭", name: "Direction" },
-  { emoji: "❤️‍🔥", name: "Heart Fire" },
-  { emoji: "♥️", name: "Heart" },
-  { emoji: "⌛️", name: "Time" },
-  { emoji: "🎃", name: "Pumpkin" },
-  { emoji: "🩵", name: "Blue Heart" },
-  { emoji: "🪆", name: "Doll" }
-];
+const BACKEND_URL = "https://channel-reaction-backend.onrender.com";
 
-let posts = [];
+const reactions = {
+  "😢": 10,
+  "🥰": 10,
+  "🤩": 10,
+  "🤣": 10,
+  "🤷": 10,
+  "🤑": 10,
+  "🧭": 10,
+  "❤️‍🔥": 10,
+  "♥️": 10,
+  "⌛️": 10,
+  "🎃": 10,
+  "🩵": 10,
+  "🪆": 10
+};
+
+let channelLink = localStorage.getItem("channelLink") || "";
+let posts = JSON.parse(localStorage.getItem("posts") || "[]");
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderReactions();
-  loadSettings();
+  loadChannel();
+  loadReactions();
   loadPosts();
   updateStats();
-  log("Dashboard ready.");
+
+  const verifyBtn = document.getElementById("verifyChannel");
+  if (verifyBtn) {
+    verifyBtn.addEventListener("click", verifyChannel);
+  }
+
+  const prepareBtn = document.getElementById("prepareReactions");
+  if (prepareBtn) {
+    prepareBtn.addEventListener("click", prepareReactions);
+  }
 });
 
+function loadChannel() {
+  const input = document.getElementById("channelLink");
 
-/* =========================
-   CHANNEL VERIFICATION
-========================= */
+  if (input && channelLink) {
+    input.value = channelLink;
+  }
+}
 
-function verifyChannel() {
+function saveChannel() {
+  const input = document.getElementById("channelLink");
 
-  const input =
-    document.getElementById("channelLink");
-
-  const result =
-    document.getElementById("channelResult");
-
-  const link =
-    input.value.trim();
-
-
-  if (!link) {
-
-    result.className =
-      "result error-result";
-
-    result.textContent =
-      "❌ Mete link WhatsApp Channel la.";
-
-    setOffline();
-
-    return;
+  if (!input) {
+    showLog("Channel link input not found.", "error");
+    return "";
   }
 
+  const value = input.value.trim();
 
-  let valid = false;
+  if (!value) {
+    showLog("Please enter a WhatsApp Channel link.", "error");
+    return "";
+  }
 
+  if (!value.startsWith("https://whatsapp.com/channel/")) {
+    showLog("Invalid WhatsApp Channel link.", "error");
+    return "";
+  }
+
+  channelLink = value;
+  localStorage.setItem("channelLink", channelLink);
+
+  return channelLink;
+}
+
+async function verifyChannel() {
+  const link = saveChannel();
+
+  if (!link) return;
+
+  showLog("Connecting to backend...", "info");
 
   try {
-
-    const url = new URL(link);
-
-    valid =
-      url.hostname === "whatsapp.com" &&
-      url.pathname.startsWith("/channel/");
-
-  } catch {
-
-    valid = false;
-
-  }
-
-
-  if (!valid) {
-
-    result.className =
-      "result error-result";
-
-    result.textContent =
-      "❌ Link la pa sanble ak yon WhatsApp Channel link.";
-
-    setOffline();
-
-    log("Invalid Channel link.");
-
-    return;
-  }
-
-
-  localStorage.setItem(
-    "channelLink",
-    link
-  );
-
-
-  result.className =
-    "result success-result";
-
-  result.textContent =
-    "✅ Channel link verifye. Li pare pou itilize nan dashboard la.";
-
-
-  setOnline();
-
-
-  log("Channel link verified.");
-
-}
-
-
-/* =========================
-   STATUS
-========================= */
-
-function setOnline() {
-
-  document
-    .getElementById("statusDot")
-    .classList.add("online");
-
-  document
-    .getElementById("statusText")
-    .textContent =
-    "Channel ready";
-}
-
-
-function setOffline() {
-
-  document
-    .getElementById("statusDot")
-    .classList.remove("online");
-
-  document
-    .getElementById("statusText")
-    .textContent =
-    "Not connected";
-}
-
-
-/* =========================
-   REACTIONS
-========================= */
-
-function renderReactions() {
-
-  const grid =
-    document.getElementById("emojiGrid");
-
-  grid.innerHTML = "";
-
-  reactions.forEach((item, index) => {
-
-    const saved =
-      localStorage.getItem(
-        `reaction_${index}`
-      );
-
-    const value =
-      saved !== null
-        ? saved
-        : 10;
-
-
-    const card =
-      document.createElement("div");
-
-    card.className =
-      "emoji-card";
-
-    card.innerHTML = `
-
-      <span class="emoji-icon">
-        ${item.emoji}
-      </span>
-
-      <span class="emoji-name">
-        ${item.name}
-      </span>
-
-      <input
-        type="number"
-        min="0"
-        value="${value}"
-        onchange="saveReaction(${index}, this.value)"
-      >
-
-    `;
-
-    grid.appendChild(card);
-
-  });
-
-}
-
-
-function saveReaction(index, value) {
-
-  let number =
-    parseInt(value);
-
-  if (
-    isNaN(number) ||
-    number < 0
-  ) {
-    number = 0;
-  }
-
-  localStorage.setItem(
-    `reaction_${index}`,
-    number
-  );
-
-  updateStats();
-
-}
-
-
-/* =========================
-   PREPARE
-========================= */
-
-function prepareReactions() {
-
-  const link =
-    localStorage.getItem(
-      "channelLink"
-    );
-
-
-  if (!link) {
-
-    document
-      .getElementById("botStatus")
-      .textContent =
-      "❌ Verify Channel link first.";
-
-    return;
-  }
-
-
-  const settings =
-    getReactionSettings();
-
-
-  const total =
-    settings.reduce(
-      (sum, item) =>
-        sum + item.quantity,
-      0
-    );
-
-
-  document
-    .getElementById("botStatus")
-    .textContent =
-    `✅ ${total} reactions configured for this Channel.`;
-
-  log(
-    `Prepared ${total} reaction quantity.`
-  );
-
-}
-
-
-/* =========================
-   GET SETTINGS
-========================= */
-
-function getReactionSettings() {
-
-  const result = [];
-
-
-  reactions.forEach((item, index) => {
-
-    const saved =
-      localStorage.getItem(
-        `reaction_${index}`
-      );
-
-
-    const quantity =
-      saved !== null
-        ? parseInt(saved)
-        : 10;
-
-
-    if (quantity > 0) {
-
-      result.push({
-        emoji: item.emoji,
-        quantity: quantity
-      });
-
+    const response = await fetch(`${BACKEND_URL}/api/channel`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        channelLink: link
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Channel verification failed.");
     }
 
+    setConnectionStatus(true);
+
+    showLog("Channel link accepted by backend.", "success");
+  } catch (error) {
+    setConnectionStatus(false);
+
+    showLog(
+      `Backend connection error: ${error.message}`,
+      "error"
+    );
+  }
+}
+
+function setConnectionStatus(connected) {
+  const status =
+    document.getElementById("connectionStatus") ||
+    document.querySelector(".status");
+
+  if (!status) return;
+
+  if (connected) {
+    status.textContent = "Connected";
+    status.classList.add("connected");
+    status.classList.remove("disconnected");
+  } else {
+    status.textContent = "Disconnected";
+    status.classList.add("disconnected");
+    status.classList.remove("connected");
+  }
+}
+
+function loadReactions() {
+  const saved = JSON.parse(
+    localStorage.getItem("reactionSettings") || "{}"
+  );
+
+  Object.keys(reactions).forEach((emoji) => {
+    if (typeof saved[emoji] === "number") {
+      reactions[emoji] = saved[emoji];
+    }
   });
 
-
-  return result;
+  renderReactionValues();
 }
 
-
-/* =========================
-   DEMO POSTS
-========================= */
-
-function addDemoPost() {
-
-  const post = {
-
-    id: Date.now(),
-
-    text:
-      "Demo WhatsApp Channel post.",
-
-    time:
-      new Date().toLocaleTimeString(),
-
-    reactions:
-      getReactionSettings()
-
-  };
-
-
-  posts.unshift(post);
-
-  savePosts();
-
-  renderPosts();
-
-  updateStats();
-
-  log("Demo post added.");
-
+function saveReactions() {
+  localStorage.setItem(
+    "reactionSettings",
+    JSON.stringify(reactions)
+  );
 }
 
+function renderReactionValues() {
+  Object.entries(reactions).forEach(([emoji, amount]) => {
+    const safeEmoji = encodeURIComponent(emoji);
 
-/* =========================
-   POSTS
-========================= */
+    const element =
+      document.querySelector(`[data-reaction="${safeEmoji}"]`) ||
+      document.querySelector(`[data-emoji="${emoji}"]`);
 
-function renderPosts() {
+    if (element) {
+      element.textContent = amount;
+    }
+  });
+}
 
-  const container =
-    document.getElementById("posts");
-
-
-  if (!posts.length) {
-
-    container.innerHTML = `
-      <div class="empty">
-        No posts yet.
-      </div>
-    `;
-
-    return;
+function changeReaction(emoji, amount) {
+  if (!Object.prototype.hasOwnProperty.call(reactions, emoji)) {
+    reactions[emoji] = 0;
   }
 
+  reactions[emoji] += amount;
+
+  if (reactions[emoji] < 0) {
+    reactions[emoji] = 0;
+  }
+
+  saveReactions();
+  renderReactionValues();
+  updateStats();
+}
+
+async function prepareReactions() {
+  const link = saveChannel();
+
+  if (!link) return;
+
+  showLog("Sending reaction configuration to backend...", "info");
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/reactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        channelLink: link,
+        reactions: reactions
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Could not prepare reactions."
+      );
+    }
+
+    showLog(
+      "Reaction configuration successfully sent to backend.",
+      "success"
+    );
+
+    addActivity(
+      "Reaction configuration prepared"
+    );
+  } catch (error) {
+    showLog(
+      `Backend error: ${error.message}`,
+      "error"
+    );
+  }
+}
+
+function addActivity(message) {
+  const activity =
+    document.getElementById("activityLog") ||
+    document.querySelector(".activity-log");
+
+  if (!activity) return;
+
+  const item = document.createElement("div");
+
+  item.className = "activity-item";
+
+  item.innerHTML = `
+    <span>${escapeHtml(message)}</span>
+    <small>${new Date().toLocaleTimeString()}</small>
+  `;
+
+  activity.prepend(item);
+}
+
+function showLog(message, type = "info") {
+  console.log(`[${type}] ${message}`);
+
+  const log =
+    document.getElementById("activityLog") ||
+    document.querySelector(".activity-log");
+
+  if (!log) return;
+
+  const item = document.createElement("div");
+
+  item.className = `activity-item ${type}`;
+
+  item.innerHTML = `
+    <span>${escapeHtml(message)}</span>
+    <small>${new Date().toLocaleTimeString()}</small>
+  `;
+
+  log.prepend(item);
+}
+
+function loadPosts() {
+  const container =
+    document.getElementById("posts") ||
+    document.querySelector(".posts");
+
+  if (!container) return;
+
+  if (!posts.length) {
+    return;
+  }
 
   container.innerHTML = "";
 
+  posts.forEach((post) => {
+    const item = document.createElement("div");
 
-  posts.forEach(post => {
+    item.className = "post";
 
-    const div =
-      document.createElement("div");
-
-    div.className = "post";
-
-
-    const reactionHTML =
-      post.reactions
-        .map(
-          reaction => `
-            <span class="reaction-pill">
-              ${reaction.emoji}
-              ${reaction.quantity}
-            </span>
-          `
-        )
-        .join("");
-
-
-    div.innerHTML = `
-
-      <div class="post-top">
-
-        <strong>
-          Channel Post
-        </strong>
-
-        <span class="post-time">
-          ${post.time}
-        </span>
-
+    item.innerHTML = `
+      <div class="post-content">
+        <strong>${escapeHtml(post.title || "Channel Post")}</strong>
+        <p>${escapeHtml(post.text || "")}</p>
       </div>
-
-      <div class="post-text">
-        ${escapeHTML(post.text)}
-      </div>
-
-      <div class="post-reactions">
-        ${reactionHTML}
-      </div>
-
     `;
 
-
-    container.appendChild(div);
-
+    container.appendChild(item);
   });
-
 }
-
-
-/* =========================
-   STORAGE
-========================= */
-
-function loadSettings() {
-
-  const link =
-    localStorage.getItem(
-      "channelLink"
-    );
-
-
-  if (link) {
-
-    document
-      .getElementById("channelLink")
-      .value = link;
-
-  }
-
-}
-
 
 function savePosts() {
-
   localStorage.setItem(
-    "channel_posts",
+    "posts",
     JSON.stringify(posts)
   );
-
 }
 
-
-function loadPosts() {
-
-  const saved =
-    localStorage.getItem(
-      "channel_posts"
-    );
-
-
-  if (!saved) {
-
-    posts = [];
-
-    return;
-  }
-
-
-  try {
-
-    posts =
-      JSON.parse(saved);
-
-  } catch {
-
-    posts = [];
-
-  }
-
-
-  renderPosts();
-
-}
-
-
-/* =========================
-   CLEAR
-========================= */
-
-function clearSettings() {
-
-  localStorage.removeItem(
-    "channelLink"
-  );
-
-
-  reactions.forEach((item, index) => {
-
-    localStorage.removeItem(
-      `reaction_${index}`
-    );
-
+function addPost(title, text) {
+  posts.unshift({
+    title: title || "Channel Post",
+    text: text || "",
+    createdAt: Date.now()
   });
 
-
-  document
-    .getElementById("channelLink")
-    .value = "";
-
-
-  document
-    .getElementById("channelResult")
-    .className = "result";
-
-
-  document
-    .getElementById("channelResult")
-    .textContent =
-    "Pa gen Channel verifye toujou.";
-
-
-  setOffline();
-
-  renderReactions();
-
+  savePosts();
+  loadPosts();
   updateStats();
-
-  log("Settings cleared.");
-
 }
-
-
-/* =========================
-   STATS
-========================= */
 
 function updateStats() {
+  const totalReactions = Object.values(reactions)
+    .reduce((sum, value) => sum + Number(value || 0), 0);
 
-  let types = 0;
+  const totalElement =
+    document.getElementById("totalReactions");
 
-  let total = 0;
+  if (totalElement) {
+    totalElement.textContent =
+      totalReactions.toLocaleString();
+  }
 
+  const postsElement =
+    document.getElementById("totalPosts");
 
-  reactions.forEach((item, index) => {
-
-    const saved =
-      localStorage.getItem(
-        `reaction_${index}`
-      );
-
-
-    const value =
-      saved !== null
-        ? parseInt(saved)
-        : 10;
-
-
-    if (value > 0) {
-      types++;
-    }
-
-
-    total += value;
-
-  });
-
-
-  document
-    .getElementById("postCount")
-    .textContent =
-    posts.length;
-
-
-  document
-    .getElementById("reactionCount")
-    .textContent =
-    types;
-
-
-  document
-    .getElementById("totalCount")
-    .textContent =
-    total;
-
+  if (postsElement) {
+    postsElement.textContent =
+      posts.length.toLocaleString();
+  }
 }
 
-
-/* =========================
-   LOG
-========================= */
-
-function log(message) {
-
-  const box =
-    document.getElementById("log");
-
-
-  const time =
-    new Date().toLocaleTimeString();
-
-
-  const line =
-    document.createElement("div");
-
-
-  line.textContent =
-    `[${time}] ${message}`;
-
-
-  box.appendChild(line);
-
-  box.scrollTop =
-    box.scrollHeight;
-
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
-
-/* =========================
-   SECURITY
-========================= */
-
-function escapeHTML(text) {
-
-  const div =
-    document.createElement("div");
-
-  div.textContent =
-    text;
-
-  return div.innerHTML;
-
-}
+window.changeReaction = changeReaction;
+window.verifyChannel = verifyChannel;
+window.prepareReactions = prepareReactions;
+window.addPost = addPost;
