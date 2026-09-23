@@ -24,6 +24,17 @@
 
 <main class="container">
 
+  <!-- PAIR -->
+  <section class="card">
+    <h2>📱 Lie nimewo WhatsApp bot la</h2>
+    <p class="muted">Antre nimewo a (fòma entènasyonal, san +). Ou ap resevwa yon kòd pou mete nan WhatsApp &gt; Aparèy konekte &gt; Konekte ak nimewo telefòn.</p>
+    <div class="channel-form">
+      <input id="phone" type="tel" placeholder="509XXXXXXXX" autocomplete="off">
+      <button class="btn primary" onclick="pairPhone()">Jwenn kòd</button>
+    </div>
+    <div id="pairResult" class="result">Pa lye toujou.</div>
+  </section>
+
   <!-- CHANNEL -->
   <section class="card channel-card">
 
@@ -64,7 +75,7 @@
     <h2>😀 Reaction Settings</h2>
 
     <p class="muted">
-      Chwazi kantite ou vle configure pou chak emoji.
+      Chwazi yon emoji. Bot la ap reyaji ak li sou chak nouvo post nan chanèl ou.
     </p>
 
     <div id="emojiGrid" class="emoji-grid"></div>
@@ -83,14 +94,14 @@
         class="btn success"
         onclick="prepareReactions()"
       >
-        🚀 Prepare Reactions
+        ✅ Aktive auto-reyaksyon
       </button>
 
       <button
         class="btn danger"
         onclick="clearSettings()"
       >
-        🗑 Clear
+        🗑 Efase
       </button>
 
     </div>
