@@ -1,21 +1,9 @@
 const BACKEND_URL =
   "https://channel-reaction-backend.onrender.com";
 
-const reactions = {
-  "😢": 10,
-  "🥰": 10,
-  "🤩": 10,
-  "🤣": 10,
-  "🤷": 10,
-  "🤑": 10,
-  "🧭": 10,
-  "❤️‍🔥": 10,
-  "♥️": 10,
-  "⌛️": 10,
-  "🎃": 10,
-  "🩵": 10,
-  "🪆": 10
-};
+const EMOJIS = ["😢","🥰","🤩","🤣","🤷","🤑","🧭","❤️‍🔥","♥️","⌛️","🎃","🩵","🪆","❤️","👍","🔥"];
+let selectedEmoji = localStorage.getItem("emoji") || "❤️";
+const reactions = {};
 
 const channelInput =
   document.getElementById("channelLink");
@@ -252,8 +240,8 @@ async function prepareReactions() {
         },
 
         body: JSON.stringify({
-          channelLink: link,
-          reactions: reactions
+          emoji: selectedEmoji,
+          enabled: true
         })
       }
     );
@@ -279,7 +267,7 @@ async function prepareReactions() {
 
     if (botStatus) {
       botStatus.textContent =
-        "Reaction configuration ready ✅";
+        "Auto-reyaksyon aktif " + selectedEmoji + " ✅";
     }
 
 
@@ -392,25 +380,56 @@ function updateStats() {
   if (reactionCount) {
 
     reactionCount.textContent =
-      Object.keys(reactions).length;
+      1;
   }
 
 
   if (totalCount) {
 
-    const total =
-      Object.values(reactions)
-        .reduce(
-          (sum, value) =>
-            sum + Number(value),
-          0
-        );
+    const total = 1;
 
     totalCount.textContent =
       total;
   }
 }
 
+
+function renderEmojis() {
+  const grid = document.getElementById("emojiGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  EMOJIS.forEach((e) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn small";
+    b.textContent = e;
+    b.style.opacity = e === selectedEmoji ? "1" : "0.45";
+    b.onclick = () => {
+      selectedEmoji = e;
+      localStorage.setItem("emoji", e);
+      renderEmojis();
+    };
+    grid.appendChild(b);
+  });
+}
+
+async function pairPhone() {
+  const out = document.getElementById("pairResult");
+  const phone = document.getElementById("phone").value.trim();
+  out.textContent = "Ap mande kòd...";
+  try {
+    const r = await fetch(`${BACKEND_URL}/api/pair`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.success) throw new Error(d.message);
+    out.textContent = d.code ? "Kòd ou: " + d.code : d.message;
+  } catch (e) {
+    out.textContent = "Erè: " + e.message;
+  }
+}
 
 function restoreChannel() {
 
@@ -429,6 +448,7 @@ function restoreChannel() {
 
 
 restoreChannel();
+renderEmojis();
 updateStats();
 
 
