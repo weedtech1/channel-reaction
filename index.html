@@ -4,349 +4,184 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Channel Reaction Bot</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
-
-    body {
-      background: #07110c;
-      color: #fff;
-      min-height: 100vh;
-    }
-
-    .header {
-      padding: 22px;
-      background: #0b1710;
-      border-bottom: 1px solid #193021;
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 24px;
-    }
-
-    .header p {
-      color: #8fa797;
-      margin-top: 6px;
-      font-size: 14px;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    .card {
-      background: #0d1b13;
-      border: 1px solid #1c3525;
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 18px;
-    }
-
-    .card h2 {
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .dot {
-      width: 11px;
-      height: 11px;
-      background: #777;
-      border-radius: 50%;
-    }
-
-    .dot.online {
-      background: #20e06d;
-      box-shadow: 0 0 12px #20e06d;
-    }
-
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 13px 18px;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .connect {
-      background: #16a34a;
-    }
-
-    .start {
-      background: #15803d;
-    }
-
-    .stop {
-      background: #991b1b;
-    }
-
-    .emoji-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 10px;
-    }
-
-    .emoji {
-      background: #13251a;
-      border: 1px solid #24432e;
-      padding: 15px 8px;
-      border-radius: 14px;
-      text-align: center;
-    }
-
-    .emoji span {
-      display: block;
-      font-size: 27px;
-      margin-bottom: 8px;
-    }
-
-    .emoji input {
-      width: 100%;
-      background: #09140d;
-      border: 1px solid #294733;
-      color: white;
-      padding: 8px;
-      border-radius: 8px;
-      text-align: center;
-    }
-
-    .post {
-      padding: 15px;
-      background: #101f16;
-      border-radius: 12px;
-      margin-top: 10px;
-    }
-
-    .post small {
-      color: #78917f;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .log {
-      background: #050b07;
-      border-radius: 12px;
-      padding: 15px;
-      min-height: 100px;
-      color: #9bb4a1;
-      font-size: 13px;
-      line-height: 1.7;
-      overflow: auto;
-    }
-
-    @media(max-width:500px) {
-      .container {
-        padding: 12px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <div class="header">
+<header class="header">
+  <div>
     <h1>⚡ Channel Reaction Bot</h1>
     <p>WhatsApp Channel Reaction Dashboard</p>
   </div>
 
-  <div class="container">
-
-    <div class="card">
-      <h2>🔗 WhatsApp Channel</h2>
-
-      <div class="status">
-        <div id="statusDot" class="dot"></div>
-        <span id="statusText">Not connected</span>
-      </div>
-
-      <button class="connect" onclick="connectChannel()">
-        Connect Channel
-      </button>
-    </div>
-
-    <div class="card">
-      <h2>😀 Reaction Settings</h2>
-
-      <div class="emoji-grid">
-
-        <div class="emoji">
-          <span>😢</span>
-          <input type="number" id="e1" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🥰</span>
-          <input type="number" id="e2" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🤩</span>
-          <input type="number" id="e3" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🤣</span>
-          <input type="number" id="e4" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🤷</span>
-          <input type="number" id="e5" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🤑</span>
-          <input type="number" id="e6" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🧭</span>
-          <input type="number" id="e7" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>❤️‍🔥</span>
-          <input type="number" id="e8" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>♥️</span>
-          <input type="number" id="e9" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>⌛️</span>
-          <input type="number" id="e10" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🎃</span>
-          <input type="number" id="e11" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🩵</span>
-          <input type="number" id="e12" value="10" min="0">
-        </div>
-
-        <div class="emoji">
-          <span>🪆</span>
-          <input type="number" id="e13" value="10" min="0">
-        </div>
-
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>⚙️ Bot Control</h2>
-
-      <div class="actions">
-        <button class="start" onclick="startBot()">▶ START</button>
-        <button class="stop" onclick="stopBot()">■ STOP</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>📝 Latest Posts</h2>
-
-      <div id="posts">
-        <div class="post">
-          <strong>No posts yet</strong>
-          <br>
-          <small>New Channel posts will appear here.</small>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>📊 Activity Log</h2>
-
-      <div id="log" class="log">
-        System ready...
-      </div>
-    </div>
-
+  <div class="connection">
+    <span id="statusDot" class="status-dot"></span>
+    <span id="statusText">Not connected</span>
   </div>
+</header>
 
-<script>
 
-let connected = false;
-let running = false;
+<main class="container">
 
-function log(message) {
-  const box = document.getElementById("log");
+  <!-- CHANNEL -->
+  <section class="card channel-card">
 
-  const time = new Date().toLocaleTimeString();
+    <h2>🔗 WhatsApp Channel</h2>
 
-  box.innerHTML +=
-    `<br>[${time}] ${message}`;
+    <p class="muted">
+      Mete link WhatsApp Channel ou anba a.
+    </p>
 
-  box.scrollTop = box.scrollHeight;
-}
+    <div class="channel-form">
 
-function connectChannel() {
+      <input
+        id="channelLink"
+        type="url"
+        placeholder="https://whatsapp.com/channel/..."
+        autocomplete="off"
+      >
 
-  connected = true;
+      <button
+        class="btn primary"
+        onclick="verifyChannel()"
+      >
+        Verify Channel
+      </button>
 
-  document.getElementById("statusDot")
-    .classList.add("online");
+    </div>
 
-  document.getElementById("statusText")
-    .textContent = "Connected";
+    <div id="channelResult" class="result">
+      Pa gen Channel verifye toujou.
+    </div>
 
-  log("Channel connection initialized.");
+  </section>
 
-}
 
-function startBot() {
+  <!-- REACTIONS -->
+  <section class="card">
 
-  if (!connected) {
-    log("Please connect your Channel first.");
-    return;
-  }
+    <h2>😀 Reaction Settings</h2>
 
-  running = true;
+    <p class="muted">
+      Chwazi kantite ou vle configure pou chak emoji.
+    </p>
 
-  log("Reaction automation started.");
+    <div id="emojiGrid" class="emoji-grid"></div>
 
-  /*
-    Important:
-    This dashboard does not create fake WhatsApp
-    accounts or bypass WhatsApp protections.
+  </section>
 
-    The official/authorized WhatsApp integration
-    should be connected here.
-  */
-}
 
-function stopBot() {
+  <!-- ACTION -->
+  <section class="card">
 
-  running = false;
+    <h2>🚀 Reaction Control</h2>
 
-  log("Reaction automation stopped.");
+    <div class="action-box">
 
-}
+      <button
+        class="btn success"
+        onclick="prepareReactions()"
+      >
+        🚀 Prepare Reactions
+      </button>
 
-</script>
+      <button
+        class="btn danger"
+        onclick="clearSettings()"
+      >
+        🗑 Clear
+      </button>
+
+    </div>
+
+    <div id="botStatus" class="bot-status">
+      Waiting for Channel...
+    </div>
+
+  </section>
+
+
+  <!-- POSTS -->
+  <section class="card">
+
+    <div class="title-row">
+
+      <div>
+        <h2>📝 Channel Posts</h2>
+
+        <p class="muted">
+          Posts configured in this dashboard.
+        </p>
+      </div>
+
+      <button
+        class="btn small"
+        onclick="addDemoPost()"
+      >
+        + Demo Post
+      </button>
+
+    </div>
+
+    <div id="posts" class="posts">
+
+      <div class="empty">
+        No posts yet.
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- STATS -->
+  <section class="card">
+
+    <h2>📊 Statistics</h2>
+
+    <div class="stats">
+
+      <div class="stat">
+        <strong id="postCount">0</strong>
+        <span>Posts</span>
+      </div>
+
+      <div class="stat">
+        <strong id="reactionCount">0</strong>
+        <span>Reaction types</span>
+      </div>
+
+      <div class="stat">
+        <strong id="totalCount">0</strong>
+        <span>Total quantity</span>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- LOG -->
+  <section class="card">
+
+    <h2>📋 Activity Log</h2>
+
+    <div id="log" class="log">
+      <div>System ready...</div>
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer>
+  Channel Reaction Bot • GitHub Pages
+</footer>
+
+
+<script src="script.js"></script>
 
 </body>
-            </html>
+</html>
