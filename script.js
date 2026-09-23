@@ -1,20 +1,3 @@
-/*
-  CHANNEL REACTION BOT
-  Frontend dashboard
-
-  This file handles:
-  - Channel settings
-  - Reaction settings
-  - Dashboard statistics
-  - Demo posts
-  - Start / Stop state
-  - LocalStorage
-
-  It does NOT create fake WhatsApp accounts
-  or bypass WhatsApp security.
-*/
-
-
 const reactions = [
   { emoji: "😢", name: "Sad" },
   { emoji: "🥰", name: "Love" },
@@ -31,35 +14,130 @@ const reactions = [
   { emoji: "🪆", name: "Doll" }
 ];
 
-
-let connected = false;
-let running = false;
-
 let posts = [];
 
+document.addEventListener("DOMContentLoaded", () => {
+  renderReactions();
+  loadSettings();
+  loadPosts();
+  updateStats();
+  log("Dashboard ready.");
+});
 
 
 /* =========================
-   LOAD
+   CHANNEL VERIFICATION
 ========================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
+function verifyChannel() {
 
-    renderReactions();
+  const input =
+    document.getElementById("channelLink");
 
-    loadSettings();
+  const result =
+    document.getElementById("channelResult");
 
-    loadPosts();
+  const link =
+    input.value.trim();
 
-    updateStats();
 
-    log("Dashboard loaded.");
+  if (!link) {
+
+    result.className =
+      "result error-result";
+
+    result.textContent =
+      "❌ Mete link WhatsApp Channel la.";
+
+    setOffline();
+
+    return;
+  }
+
+
+  let valid = false;
+
+
+  try {
+
+    const url = new URL(link);
+
+    valid =
+      url.hostname === "whatsapp.com" &&
+      url.pathname.startsWith("/channel/");
+
+  } catch {
+
+    valid = false;
 
   }
-);
 
+
+  if (!valid) {
+
+    result.className =
+      "result error-result";
+
+    result.textContent =
+      "❌ Link la pa sanble ak yon WhatsApp Channel link.";
+
+    setOffline();
+
+    log("Invalid Channel link.");
+
+    return;
+  }
+
+
+  localStorage.setItem(
+    "channelLink",
+    link
+  );
+
+
+  result.className =
+    "result success-result";
+
+  result.textContent =
+    "✅ Channel link verifye. Li pare pou itilize nan dashboard la.";
+
+
+  setOnline();
+
+
+  log("Channel link verified.");
+
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+function setOnline() {
+
+  document
+    .getElementById("statusDot")
+    .classList.add("online");
+
+  document
+    .getElementById("statusText")
+    .textContent =
+    "Channel ready";
+}
+
+
+function setOffline() {
+
+  document
+    .getElementById("statusDot")
+    .classList.remove("online");
+
+  document
+    .getElementById("statusText")
+    .textContent =
+    "Not connected";
+}
 
 
 /* =========================
@@ -73,51 +151,49 @@ function renderReactions() {
 
   grid.innerHTML = "";
 
-  reactions.forEach(
-    (item, index) => {
+  reactions.forEach((item, index) => {
 
-      const saved =
-        localStorage.getItem(
-          `reaction_${index}`
-        );
+    const saved =
+      localStorage.getItem(
+        `reaction_${index}`
+      );
 
-      const value =
-        saved !== null
-          ? saved
-          : 10;
+    const value =
+      saved !== null
+        ? saved
+        : 10;
 
-      const card =
-        document.createElement("div");
 
-      card.className = "emoji-card";
+    const card =
+      document.createElement("div");
 
-      card.innerHTML = `
+    card.className =
+      "emoji-card";
 
-        <span class="emoji-icon">
-          ${item.emoji}
-        </span>
+    card.innerHTML = `
 
-        <span class="emoji-name">
-          ${item.name}
-        </span>
+      <span class="emoji-icon">
+        ${item.emoji}
+      </span>
 
-        <input
-          type="number"
-          min="0"
-          value="${value}"
-          data-index="${index}"
-          onchange="saveReaction(${index}, this.value)"
-        >
+      <span class="emoji-name">
+        ${item.name}
+      </span>
 
-      `;
+      <input
+        type="number"
+        min="0"
+        value="${value}"
+        onchange="saveReaction(${index}, this.value)"
+      >
 
-      grid.appendChild(card);
+    `;
 
-    }
-  );
+    grid.appendChild(card);
+
+  });
 
 }
-
 
 
 function saveReaction(index, value) {
@@ -139,183 +215,54 @@ function saveReaction(index, value) {
 
   updateStats();
 
-  log(
-    `${reactions[index].emoji} quantity set to ${number}.`
-  );
-
 }
 
 
-
 /* =========================
-   CHANNEL
+   PREPARE
 ========================= */
 
-function connectChannel() {
-
-  const name =
-    document
-      .getElementById("channelName")
-      .value
-      .trim();
+function prepareReactions() {
 
   const link =
+    localStorage.getItem(
+      "channelLink"
+    );
+
+
+  if (!link) {
+
     document
-      .getElementById("channelLink")
-      .value
-      .trim();
-
-
-  if (!name || !link) {
-
-    log(
-      "Please enter Channel name and link."
-    );
+      .getElementById("botStatus")
+      .textContent =
+      "❌ Verify Channel link first.";
 
     return;
-
   }
 
 
-  localStorage.setItem(
-    "channelName",
-    name
-  );
-
-  localStorage.setItem(
-    "channelLink",
-    link
-  );
+  const settings =
+    getReactionSettings();
 
 
-  connected = true;
-
-
-  document
-    .getElementById("statusDot")
-    .classList.add("online");
-
-
-  document
-    .getElementById("statusText")
-    .textContent =
-    "Connected";
-
-
-  log(
-    `Channel "${name}" configured.`
-  );
-
-}
-
-
-
-/* =========================
-   START
-========================= */
-
-function startBot() {
-
-  if (!connected) {
-
-    log(
-      "Connect/configure your Channel first."
+  const total =
+    settings.reduce(
+      (sum, item) =>
+        sum + item.quantity,
+      0
     );
-
-    return;
-
-  }
-
-
-  running = true;
 
 
   document
     .getElementById("botStatus")
     .textContent =
-    "Bot running";
-
-
-  log(
-    "Automation started."
-  );
-
-
-  /*
-    The authorized WhatsApp integration
-    should be connected here.
-
-    This frontend intentionally does not
-    bypass WhatsApp protections or create
-    fake accounts.
-  */
-
-}
-
-
-
-/* =========================
-   STOP
-========================= */
-
-function stopBot() {
-
-  running = false;
-
-
-  document
-    .getElementById("botStatus")
-    .textContent =
-    "Bot stopped";
-
+    `✅ ${total} reactions configured for this Channel.`;
 
   log(
-    "Automation stopped."
+    `Prepared ${total} reaction quantity.`
   );
 
 }
-
-
-
-/* =========================
-   DEMO POST
-========================= */
-
-function addDemoPost() {
-
-  const post = {
-
-    id: Date.now(),
-
-    text:
-      "This is a demo WhatsApp Channel post.",
-
-    time:
-      new Date()
-        .toLocaleTimeString(),
-
-    reactions:
-      getReactionSettings()
-
-  };
-
-
-  posts.unshift(post);
-
-
-  savePosts();
-
-  renderPosts();
-
-  updateStats();
-
-
-  log(
-    "Demo post added."
-  );
-
-}
-
 
 
 /* =========================
@@ -327,45 +274,73 @@ function getReactionSettings() {
   const result = [];
 
 
-  reactions.forEach(
-    (item, index) => {
+  reactions.forEach((item, index) => {
 
-      const saved =
-        localStorage.getItem(
-          `reaction_${index}`
-        );
-
-
-      const quantity =
-        saved !== null
-          ? parseInt(saved)
-          : 10;
+    const saved =
+      localStorage.getItem(
+        `reaction_${index}`
+      );
 
 
-      if (quantity > 0) {
+    const quantity =
+      saved !== null
+        ? parseInt(saved)
+        : 10;
 
-        result.push({
 
-          emoji: item.emoji,
+    if (quantity > 0) {
 
-          quantity: quantity
-
-        });
-
-      }
+      result.push({
+        emoji: item.emoji,
+        quantity: quantity
+      });
 
     }
-  );
+
+  });
 
 
   return result;
+}
+
+
+/* =========================
+   DEMO POSTS
+========================= */
+
+function addDemoPost() {
+
+  const post = {
+
+    id: Date.now(),
+
+    text:
+      "Demo WhatsApp Channel post.",
+
+    time:
+      new Date().toLocaleTimeString(),
+
+    reactions:
+      getReactionSettings()
+
+  };
+
+
+  posts.unshift(post);
+
+  savePosts();
+
+  renderPosts();
+
+  updateStats();
+
+  log("Demo post added.");
 
 }
 
 
-
 /* =========================
-   RENDER POSTS
+   POSTS
 ========================= */
 
 function renderPosts() {
@@ -383,72 +358,87 @@ function renderPosts() {
     `;
 
     return;
-
   }
 
 
   container.innerHTML = "";
 
 
-  posts.forEach(
-    post => {
+  posts.forEach(post => {
 
-      const div =
-        document.createElement("div");
+    const div =
+      document.createElement("div");
 
-      div.className = "post";
-
-
-      const reactionHTML =
-        post.reactions
-          .map(
-            reaction => `
-              <span class="reaction-pill">
-                ${reaction.emoji}
-                ${reaction.quantity}
-              </span>
-            `
-          )
-          .join("");
+    div.className = "post";
 
 
-      div.innerHTML = `
-
-        <div class="post-top">
-
-          <strong>
-            Channel Post
-          </strong>
-
-          <span class="post-time">
-            ${post.time}
-          </span>
-
-        </div>
-
-        <div class="post-text">
-          ${escapeHTML(post.text)}
-        </div>
-
-        <div class="post-reactions">
-          ${reactionHTML}
-        </div>
-
-      `;
+    const reactionHTML =
+      post.reactions
+        .map(
+          reaction => `
+            <span class="reaction-pill">
+              ${reaction.emoji}
+              ${reaction.quantity}
+            </span>
+          `
+        )
+        .join("");
 
 
-      container.appendChild(div);
+    div.innerHTML = `
 
-    }
-  );
+      <div class="post-top">
+
+        <strong>
+          Channel Post
+        </strong>
+
+        <span class="post-time">
+          ${post.time}
+        </span>
+
+      </div>
+
+      <div class="post-text">
+        ${escapeHTML(post.text)}
+      </div>
+
+      <div class="post-reactions">
+        ${reactionHTML}
+      </div>
+
+    `;
+
+
+    container.appendChild(div);
+
+  });
 
 }
-
 
 
 /* =========================
    STORAGE
 ========================= */
+
+function loadSettings() {
+
+  const link =
+    localStorage.getItem(
+      "channelLink"
+    );
+
+
+  if (link) {
+
+    document
+      .getElementById("channelLink")
+      .value = link;
+
+  }
+
+}
+
 
 function savePosts() {
 
@@ -473,7 +463,6 @@ function loadPosts() {
     posts = [];
 
     return;
-
   }
 
 
@@ -494,94 +483,86 @@ function loadPosts() {
 }
 
 
+/* =========================
+   CLEAR
+========================= */
 
-function loadSettings() {
+function clearSettings() {
 
-  const name =
-    localStorage.getItem(
-      "channelName"
+  localStorage.removeItem(
+    "channelLink"
+  );
+
+
+  reactions.forEach((item, index) => {
+
+    localStorage.removeItem(
+      `reaction_${index}`
     );
 
-  const link =
-    localStorage.getItem(
-      "channelLink"
-    );
+  });
 
 
-  if (name) {
-
-    document
-      .getElementById("channelName")
-      .value = name;
-
-  }
+  document
+    .getElementById("channelLink")
+    .value = "";
 
 
-  if (link) {
-
-    document
-      .getElementById("channelLink")
-      .value = link;
-
-  }
+  document
+    .getElementById("channelResult")
+    .className = "result";
 
 
-  if (name && link) {
+  document
+    .getElementById("channelResult")
+    .textContent =
+    "Pa gen Channel verifye toujou.";
 
-    connected = true;
 
-    document
-      .getElementById("statusDot")
-      .classList.add("online");
+  setOffline();
 
-    document
-      .getElementById("statusText")
-      .textContent =
-      "Connected";
+  renderReactions();
 
-  }
+  updateStats();
+
+  log("Settings cleared.");
 
 }
 
 
-
 /* =========================
-   STATISTICS
+   STATS
 ========================= */
 
 function updateStats() {
 
-  let configuredTypes = 0;
+  let types = 0;
 
-  let totalQuantity = 0;
-
-
-  reactions.forEach(
-    (item, index) => {
-
-      const saved =
-        localStorage.getItem(
-          `reaction_${index}`
-        );
+  let total = 0;
 
 
-      const value =
-        saved !== null
-          ? parseInt(saved)
-          : 10;
+  reactions.forEach((item, index) => {
+
+    const saved =
+      localStorage.getItem(
+        `reaction_${index}`
+      );
 
 
-      if (value > 0) {
+    const value =
+      saved !== null
+        ? parseInt(saved)
+        : 10;
 
-        configuredTypes++;
 
-      }
-
-
-      totalQuantity += value;
-
+    if (value > 0) {
+      types++;
     }
-  );
+
+
+    total += value;
+
+  });
 
 
   document
@@ -593,16 +574,15 @@ function updateStats() {
   document
     .getElementById("reactionCount")
     .textContent =
-    configuredTypes;
+    types;
 
 
   document
     .getElementById("totalCount")
     .textContent =
-    totalQuantity;
+    total;
 
 }
-
 
 
 /* =========================
@@ -616,8 +596,7 @@ function log(message) {
 
 
   const time =
-    new Date()
-      .toLocaleTimeString();
+    new Date().toLocaleTimeString();
 
 
   const line =
@@ -630,12 +609,10 @@ function log(message) {
 
   box.appendChild(line);
 
-
   box.scrollTop =
     box.scrollHeight;
 
 }
-
 
 
 /* =========================
@@ -647,7 +624,8 @@ function escapeHTML(text) {
   const div =
     document.createElement("div");
 
-  div.textContent = text;
+  div.textContent =
+    text;
 
   return div.innerHTML;
 
